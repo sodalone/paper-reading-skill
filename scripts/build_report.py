@@ -36,6 +36,8 @@ FALLBACK_ROLE_ORDER = [
     "stability_or_training",
     "qualitative",
 ]
+RENDERABLE_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+IMAGE_MARKDOWN_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 
 
 def parse_args() -> argparse.Namespace:
@@ -109,6 +111,15 @@ def fallback_caption_from_path(path: str) -> str:
     return stem or "图片标题待补"
 
 
+def should_use_as_embedded_image(path: str) -> bool:
+    suffix = Path(path).suffix.lower()
+    return suffix in RENDERABLE_IMAGE_EXTENSIONS
+
+
+def normalize_markdown_path(path: str) -> str:
+    return str(path).replace("\\", "/")
+
+
 def build_fallback_figure_catalog(artifacts: dict[str, Any]) -> list[dict[str, Any]]:
     catalog: list[dict[str, Any]] = []
     raw_candidates: list[str] = []
@@ -120,9 +131,15 @@ def build_fallback_figure_catalog(artifacts: dict[str, Any]) -> list[dict[str, A
         for item in artifacts.get("image_list") or []:
             if isinstance(item, dict) and item.get("path"):
                 raw_candidates.append(str(item["path"]))
+            elif isinstance(item, str):
+                raw_candidates.append(item)
     if not raw_candidates:
         for path in artifacts.get("page_list") or []:
             raw_candidates.append(str(path))
+
+    renderable_candidates = [path for path in raw_candidates if should_use_as_embedded_image(path)]
+    if renderable_candidates:
+        raw_candidates = renderable_candidates
 
     seen: set[str] = set()
     for index, path in enumerate(raw_candidates, start=1):
@@ -169,9 +186,32 @@ def normalize_figure_catalog(artifacts: dict[str, Any]) -> list[dict[str, Any]]:
     return build_fallback_figure_catalog(artifacts)
 
 
-def group_figures_by_role(artifacts: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    grouped: dict[str, list[dict[str, Any]]] = {role: [] for role in ROLE_TITLES}
+def collect_embeddable_figures(artifacts: dict[str, Any]) -> list[dict[str, Any]]:
+    embeddable: list[dict[str, Any]] = []
     for figure in normalize_figure_catalog(artifacts):
+        path = str(figure.get("path") or "")
+        if not path or not should_use_as_embedded_image(path):
+            continue
+        normalized = dict(figure)
+        normalized["path"] = normalize_markdown_path(path)
+        embeddable.append(normalized)
+    return embeddable
+
+
+def require_embeddable_figures(artifacts: dict[str, Any], artifacts_path: Path) -> list[dict[str, Any]]:
+    figures = collect_embeddable_figures(artifacts)
+    if figures:
+        return figures
+
+    raise ValueError(
+        "report generation aborted: no embeddable figures were found in artifacts.json. "
+        f"Refusing to produce an image-less report: {artifacts_path}"
+    )
+
+
+def group_figures_by_role(figures: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {role: [] for role in ROLE_TITLES}
+    for figure in figures:
         role = figure["placement_role"]
         if role not in grouped:
             continue
@@ -203,7 +243,6 @@ def render_external_resources(context: dict[str, Any]) -> str:
         f"2. hjfy：{format_link(context.get('arxiv_id_versioned') or 'N/A', context.get('hjfy_url'))}",
         f"3. papers.cool 论文页：{format_link('论文页', context.get('papers_cool_paper_url'))}",
         f"4. papers.cool 相关搜索页：{format_link('相关搜索页', context.get('papers_cool_related_query_url'))}",
-        "5. 社区解读博客：见下方专门区块",
     ]
     visited_at = context.get("hjfy_visited_at")
     if visited_at:
@@ -214,40 +253,6 @@ def render_external_resources(context: dict[str, Any]) -> str:
         lines.append("- 外部上下文缺口：")
         for gap in gaps:
             lines.append(f"  - {gap}")
-    return "\n".join(lines)
-
-
-def render_community_blogs(context: dict[str, Any]) -> str:
-    blogs = [blog for blog in list(context.get("community_blogs") or []) if isinstance(blog, dict)]
-    gaps = [str(item) for item in list(context.get("community_blog_gaps") or []) if str(item).strip()]
-
-    if not blogs:
-        lines = ["- 当前未独立检索到可核验的知乎 / CSDN 论文解读博客。"]
-        for gap in gaps:
-            lines.append(f"- 检索说明：{gap}")
-        return "\n".join(lines)
-
-    lines: list[str] = []
-    if len(blogs) < 5:
-        lines.append(f"- 当前仅独立检索到以下可核验的知乎 / CSDN 论文解读博客，数量不足 5 条。")
-        lines.append("")
-
-    for index, blog in enumerate(blogs, start=1):
-        title = str(blog.get("title") or f"社区解读博客 {index}").strip()
-        url = str(blog.get("url") or "").strip()
-        platform = str(blog.get("platform") or "未知平台").strip()
-        page_type = str(blog.get("page_type") or "未知页面类型").strip()
-        verification_status = str(blog.get("verification_status") or "未标注").strip()
-        why_worth_reading = str(blog.get("why_worth_reading") or "").strip()
-        lines.append(f"{index}. [{title}]({url})")
-        lines.append(f"   - 平台：{platform}")
-        lines.append(f"   - 页面类型：{page_type}")
-        lines.append(f"   - 核验状态：{verification_status}")
-        if why_worth_reading:
-            lines.append(f"   - 值得看：{why_worth_reading}")
-
-    for gap in gaps:
-        lines.append(f"- 检索说明：{gap}")
     return "\n".join(lines)
 
 
@@ -325,6 +330,15 @@ def render_experiment_rows() -> str:
     )
 
 
+def validate_rendered_report_has_images(rendered: str, report_path: Path) -> None:
+    if IMAGE_MARKDOWN_PATTERN.search(rendered):
+        return
+    raise ValueError(
+        "report generation aborted: rendered report contains no markdown images. "
+        f"Expected at least one embedded figure in {report_path}"
+    )
+
+
 def main() -> int:
     args = parse_args()
     artifacts_path = Path(args.artifacts).resolve()
@@ -336,7 +350,8 @@ def main() -> int:
     artifacts = json.loads(artifacts_path.read_text(encoding="utf-8"))
     context = load_json_if_exists(context_path)
     template = template_path.read_text(encoding="utf-8")
-    figure_groups = group_figures_by_role(artifacts)
+    embeddable_figures = require_embeddable_figures(artifacts, artifacts_path)
+    figure_groups = group_figures_by_role(embeddable_figures)
 
     focus_areas = split_items(args.focus_areas)
     baseline_papers = split_items(args.baseline_papers)
@@ -352,7 +367,6 @@ def main() -> int:
         "{{FOCUS_AREAS}}": render_list(focus_areas, "未指定"),
         "{{BASELINE_PAPERS}}": render_list(baseline_papers, "未指定"),
         "{{EXTERNAL_RESOURCES_SECTION}}": render_external_resources(context),
-        "{{COMMUNITY_BLOGS_SECTION}}": render_community_blogs(context),
         "{{RELATED_PAPERS_ROWS}}": render_related_papers_table(context),
         "{{OVERVIEW_FIGURES_SECTION}}": render_figure_group("overview", figure_groups["overview"]),
         "{{METHOD_DETAIL_FIGURES_SECTION}}": render_figure_group("method_detail", figure_groups["method_detail"]),
@@ -370,6 +384,7 @@ def main() -> int:
     for key, value in replacements.items():
         rendered = rendered.replace(key, value)
 
+    validate_rendered_report_has_images(rendered, report_path)
     report_path.write_text(rendered, encoding="utf-8")
     print(f"Generated report scaffold: {report_path}")
     return 0
