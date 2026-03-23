@@ -1,6 +1,6 @@
 ---
 name: paper-reading
-description: Reviewer-level analysis for AI and ML papers with strict evidence grounding, claim mapping, mathematical derivation analysis, experiment-to-claim auditing, latest arXiv version resolution, hjfy link insertion, papers.cool related-paper retrieval, and report-first outputs for local PDFs, arXiv papers, source tarballs, or pasted text.
+description: Reviewer-level analysis for AI and ML papers with strict evidence grounding, claim mapping, mathematical derivation analysis, experiment-to-claim auditing, latest arXiv version resolution, clear explanatory handling of hjfy and papers.cool links, and report-first outputs for local PDFs, arXiv papers, source tarballs, or pasted text.
 ---
 
 # Paper Reading
@@ -40,6 +40,13 @@ description: Reviewer-level analysis for AI and ML papers with strict evidence g
     - 需要保留原文记号时，优先使用简短行内代码或 fenced `text` 代码块
     - 优先使用 ASCII 友好的公式记法，如 `p_theta`、`sum`、`prod`、`lambda_a`
     - 目标是让普通 Markdown 渲染器、编辑器预览和聊天界面都能稳定阅读
+10. 处理外部资源链接时，不要把 `hjfy`、`papers.cool`、`related-search` 一股脑堆在报告最顶部
+    - `hjfy` 链接要明确说明：这是中文翻译阅读入口
+    - `papers.cool` 论文页要明确说明：这是论文卡片与检索入口
+    - `papers.cool related-search` 要明确说明：这是查找关联论文 / 相关方向论文的入口
+    - 这些链接应放在“阅读入口”“延伸阅读”“相关工作线索”之类的小节，或首次提及时就地解释
+    - 若报告有“先给结论”小节，默认把上述入口放在“先给结论”之前
+    - 除非用户明确要求，否则不要只给裸链接，不要把链接用途留给用户自己猜
 
 按需读取：
 
@@ -86,6 +93,13 @@ description: Reviewer-level analysis for AI and ML papers with strict evidence g
      - papers.cool 论文页与 related-search 链接
      - papers.cool 相关论文表格
      - 就地插图槽位与图注摘要
+   - 外部链接插入规则：
+     - 不要把 arXiv、hjfy、papers.cool、related-search 全堆在文档开头做成一排链接
+     - 若保留顶部入口，最多保留 `arXiv` 原文链接
+     - `hjfy` 应放在“阅读入口”或“阅读辅助”处，并注明“中文翻译阅读入口”
+     - `papers.cool` 与 `related-search` 应放在“延伸阅读”“相关工作线索”或相邻位置，并注明它们用于查找关联论文
+     - `papers.cool` 相关论文表格应紧跟在上述说明后，不要孤立悬挂在报告顶部
+     - 若正文采用“先给结论”的结构，默认把该链接小节放在“先给结论”之前
    - 插图默认归位规则：
      - `overview` 放在“核心观点 / 总体结构”附近
      - `method_detail` 放在“方法 / 算法构造”附近
@@ -119,8 +133,10 @@ description: Reviewer-level analysis for AI and ML papers with strict evidence g
 
 以下条件未满足时，不算完成：
 
-- 若输入可可靠解析为 arXiv 论文，`report.md` 顶部必须出现最新版 arXiv 链接和最新版 hjfy 链接
-- `report.md` 顶部必须出现 papers.cool 论文页、related-search 链接和相关论文表格
+- 若输入可可靠解析为 arXiv 论文，`report.md` 中必须出现最新版 arXiv 链接与最新版 hjfy 链接，但不要求二者都在顶部
+- `report.md` 中必须出现 papers.cool 论文页、related-search 链接和相关论文表格，但不要求它们堆在顶部
+- `hjfy` 链接附近必须说明它用于看中文翻译
+- `papers.cool` 与 `related-search` 链接附近必须说明它们用于查询关联论文或扩展相关工作
 - 报告中的标题与固定标签默认中文化；除专业专名外，能用中文尽量用中文
 - 报告中不再保留独立的 `Key Figures` 板块
 - 结构图必须出现在方法或总体结构分析附近
