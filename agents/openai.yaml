@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper Reading"
+  short_description: "Reviewer-level AI paper reading with external resources and evidence-backed tables"
+  default_prompt: "Use $paper-reading to analyze this AI paper with reviewer-level rigor, latest arXiv version resolution, external resources, and claim-grounded result tables."
