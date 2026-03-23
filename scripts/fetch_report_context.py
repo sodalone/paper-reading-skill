@@ -63,8 +63,7 @@ STOPWORDS = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Fetch external report context from arXiv, hjfy, papers.cool, and "
-            "independently searched Zhihu / CSDN interpretation blogs."
+            "Fetch external report context from arXiv, hjfy, and papers.cool."
         )
     )
     parser.add_argument("--artifacts", required=True, help="Path to outputs/<paper_id>/artifacts.json")
@@ -519,9 +518,6 @@ def build_empty_context(base_id: str | None, title_guess: str | None) -> dict[st
         "papers_cool_keywords": [],
         "papers_cool_related_query_url": None,
         "papers_cool_related_papers": [],
-        "community_blog_queries": [],
-        "community_blogs": [],
-        "community_blog_gaps": [],
         "context_gaps": [],
     }
 
@@ -589,15 +585,6 @@ def main() -> int:
             context["context_gaps"].append(f"failed to fetch papers.cool related search page: {exc}")
     else:
         context["context_gaps"].append("papers.cool keywords were unavailable for this paper")
-
-    if context["paper_title"]:
-        meta = derive_title_metadata(str(context["paper_title"]))
-        blogs, query_log, blog_gaps = collect_community_blogs(meta)
-        context["community_blog_queries"] = query_log
-        context["community_blogs"] = blogs
-        context["community_blog_gaps"] = blog_gaps
-    else:
-        context["community_blog_gaps"].append("paper title was unavailable, so community blog search was skipped")
 
     output_path.write_text(json.dumps(context, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Generated report context: {output_path}")

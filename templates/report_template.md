@@ -8,10 +8,6 @@
 
 {{EXTERNAL_RESOURCES_SECTION}}
 
-### 社区解读博客
-
-{{COMMUNITY_BLOGS_SECTION}}
-
 ### papers.cool 相关论文
 
 | 论文 | 链接 | 相关原因 | 备注 |

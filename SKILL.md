@@ -1,6 +1,6 @@
 ---
 name: paper-reading
-description: Reviewer-level analysis for AI and ML papers with strict evidence grounding, claim mapping, mathematical derivation analysis, experiment-to-claim auditing, latest arXiv version resolution, hjfy link insertion, papers.cool related-paper retrieval, selected community blog roundup, and report-first outputs for local PDFs, arXiv papers, source tarballs, or pasted text.
+description: Reviewer-level analysis for AI and ML papers with strict evidence grounding, claim mapping, mathematical derivation analysis, experiment-to-claim auditing, latest arXiv version resolution, hjfy link insertion, papers.cool related-paper retrieval, and report-first outputs for local PDFs, arXiv papers, source tarballs, or pasted text.
 ---
 
 # Paper Reading
@@ -33,9 +33,13 @@ description: Reviewer-level analysis for AI and ML papers with strict evidence g
 4. 不要把“合理猜测”写成事实，不要替作者补齐动机、实验目的、公式含义或文献立场
 5. 讨论实验时，优先问“这组实验究竟验证了哪条主张”，而不是只复述结果
 6. 讨论相关工作时，只接受真实来源；优先 arXiv、OpenReview、会议官网、期刊页面与作者主页
-7. 社区博客不是正式学术证据，只能作为“外部阅读入口”和“辅助理解材料”
-8. 报告语言默认中文优先：除论文标题、作者名、公式符号、数据集 / 方法正式名称、必要缩写外，能用中文尽量用中文
-9. 图片必须图随论证走，不再把结构图、训练曲线、定性图统一堆在顶部
+7. 报告语言默认中文优先：除论文标题、作者名、公式符号、数据集 / 方法正式名称、必要缩写外，能用中文尽量用中文
+8. 图片必须图随论证走，不再把结构图、训练曲线、定性图统一堆在顶部
+9. 默认不要在 `report.md` 里输出原始块级 LaTeX 公式，如 `\[...\]`、`$$...$$`
+    - 优先写成“公式含义 + 纯 Markdown 兼容表示”
+    - 需要保留原文记号时，优先使用简短行内代码或 fenced `text` 代码块
+    - 优先使用 ASCII 友好的公式记法，如 `p_theta`、`sum`、`prod`、`lambda_a`
+    - 目标是让普通 Markdown 渲染器、编辑器预览和聊天界面都能稳定阅读
 
 按需读取：
 
@@ -94,27 +98,13 @@ description: Reviewer-level analysis for AI and ML papers with strict evidence g
      - `主实验相关图`
      - `定性结果图`
      - `失败案例图（如有）`
+   - 若 `figure_catalog` 缺失或为空，但 `image_list` / `selected_figures` / `pages` 中已经存在可渲染图片，必须自动走 fallback，把图片插入报告
+   - 只要 `figures/` 中已有可渲染图片，就不能继续交付“无图片的最终报告”
 
-5. 联网补齐外部信息
-   - 先按 `references/literature_search.md` 的规则自动检索社区解读博客
-   - 社区检索必须独立完成，不要把用户给的链接当作社区区的发现来源
-   - 社区区只允许两类页面：
-     - `zhuanlan.zhihu.com` 的知乎专栏文章
-     - `blog.csdn.net/.../article/details/...` 的 CSDN 博客文章
-   - 社区检索采用“Google 风格的标题优先查询”，顺序固定为：
-     - `zhihu "<paper full title>"`
-     - `csdn "<paper full title>"`
-     - `zhuanlan.zhihu.com "<paper full title>"`
-     - `site:zhuanlan.zhihu.com "<paper full title>"`
-     - `site:blog.csdn.net "<paper full title>"`
-   - 只有当标题检索召回为零或明显不足时，才补充：
-     - `zhihu <paper acronym>`
-     - `csdn <paper acronym>`
-     - `zhihu "<core title phrase>"`
-     - `csdn "<core title phrase>"`
-   - 每条候选都要经过页面类型过滤和“是否为论文解读文章”的判定
-   - 排除知乎问题页、回答列表页、用户主页、CSDN 下载页、专栏目录页、聚合转载页，以及 alphaXiv、ChatPaper、Bytez、项目页、代码仓库、镜像阅读页
-   - 只有标题或摘要片段足以表明“这是目标论文的解读文章”时，才可写入 `report.md` 顶部
+5. 运行 `scripts/validate_report.py`
+   - 校验 `report.md` 中确实嵌入了 Markdown 图片
+   - 校验 `report.md` 中至少有一张图片对应 `artifacts.json` 中的可渲染图片路径
+   - 若校验失败，不得继续交付；必须回到图片提取或报告构建步骤修复
 
 6. 完成正式分析
    - 按模板章节结构写完分析正文
@@ -131,17 +121,13 @@ description: Reviewer-level analysis for AI and ML papers with strict evidence g
 
 - 若输入可可靠解析为 arXiv 论文，`report.md` 顶部必须出现最新版 arXiv 链接和最新版 hjfy 链接
 - `report.md` 顶部必须出现 papers.cool 论文页、related-search 链接和相关论文表格
-- `report.md` 顶部的社区区必须命名为 `社区解读博客`
-- 社区区只允许出现独立搜索得到的知乎专栏 / CSDN 博客文章
-  - 不要把用户提供的链接算作独立搜索结果
-  - 不要把 alphaXiv、ChatPaper、Bytez、GitHub、镜像阅读页、项目页写进去
-  - 如果严格完成“标题优先检索 + 站点补检 + 简称补救”后仍无结果，就明确写“当前未独立检索到可核验的知乎 / CSDN 论文解读博客”
-  - 如果有结果但不足 `5` 条，就明确写“当前仅独立检索到以下可核验的知乎 / CSDN 论文解读博客，数量不足 5 条”
 - 报告中的标题与固定标签默认中文化；除专业专名外，能用中文尽量用中文
 - 报告中不再保留独立的 `Key Figures` 板块
 - 结构图必须出现在方法或总体结构分析附近
 - 训练曲线、主实验图、定性图必须出现在对应实验章节附近
 - 如果图片自动归位失败，要显式写出缺口，不允许继续把图堆在顶部
+- 如果 `figure_catalog` 为空，但 `figures/` 中已经存在可渲染图片，必须通过 fallback 继续插图，不能交付无图报告
+- 必须运行 `scripts/validate_report.py --artifacts outputs/<paper_id>/artifacts.json --report outputs/<paper_id>/report.md` 并通过；未通过即视为未完成
 - 第 2 章必须包含：
   - `2.4 公式与核心理论的边界`
   - `2.5 理论假设、替代解释与未证成部分`
