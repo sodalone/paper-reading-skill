@@ -1,4 +1,4 @@
-# paper-reviewer-final-v4-skill
+# paper-reading-skill
 
 这是终版增强后的**可执行版** Codex skill。  
 目标是输出一份**自包含**、**固定章节**、**严格 reviewer-level**、并且**更适合公式阅读**的论文阅读报告：
