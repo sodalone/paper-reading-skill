@@ -26,7 +26,7 @@ def extract_arxiv_id(text: str) -> Optional[Tuple[str, Optional[str]]]:
 
 def fetch_latest_version(base_id: str, timeout: int = 20) -> Optional[str]:
     url = f"https://arxiv.org/abs/{base_id}"
-    r = requests.get(url, timeout=timeout, headers={"User-Agent": "paper-reviewer-skill/final-v2"})
+    r = requests.get(url, timeout=timeout, headers={"User-Agent": "paper-reading-skill"})
     r.raise_for_status()
     html = r.text
     candidates = re.findall(rf'{re.escape(base_id)}v(\d+)', html)
@@ -55,6 +55,7 @@ def resolve_ids(input_text: str) -> Dict[str, str]:
         "hjfy_url": f"https://hjfy.top/arxiv/{paper_id_with_version}",
         "papers_cool_url": f"https://papers.cool/arxiv/{paper_id_with_version}",
         "ar5iv_url": f"https://ar5iv.org/html/{paper_id_with_version}",
+        "arxiv_src_url": f"https://arxiv.org/src/{paper_id_with_version}",
     }
 
 
@@ -80,4 +81,4 @@ def get_workspace(root: Path, input_text: str):
 
 
 def http_get(url: str, timeout: int = 30):
-    return requests.get(url, timeout=timeout, headers={"User-Agent": "paper-reviewer-skill/final-v2"})
+    return requests.get(url, timeout=timeout, headers={"User-Agent": "paper-reading-skill"})

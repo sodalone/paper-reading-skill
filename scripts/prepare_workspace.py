@@ -29,6 +29,7 @@ def main() -> None:
             "raw_abs_html": str(workspace / "raw" / "abs.html"),
             "raw_pdf": str(workspace / "raw" / "paper.pdf"),
             "raw_ar5iv_html": str(workspace / "raw" / "ar5iv.html"),
+            "raw_src_tar": str(workspace / "raw" / "source.tar"),
             "raw_hjfy_html": str(workspace / "raw" / "hjfy.html"),
             "raw_papers_cool_html": str(workspace / "raw" / "papers_cool.html"),
             "cache_references_json": str(workspace / "cache" / "references.json"),

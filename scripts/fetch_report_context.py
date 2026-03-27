@@ -14,7 +14,7 @@ from typing import Any
 from urllib.parse import quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) paper-reading-skill/4.0"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) paper-reading-skill"
 INTERPRETATION_HINTS = (
     "解读",
     "详解",

@@ -1,69 +1,48 @@
-# paper-reviewer-final-v4-skill
+# Paper Reading
 
-这是终版增强后的**可执行版** Codex skill。  
-目标是输出一份**自包含**、**固定章节**、**严格 reviewer-level**、并且**更适合公式阅读**的论文阅读报告：
+`Paper Reading` 是一个面向单篇 AI 论文的可执行 Codex skill。它会先运行内置脚本完成 arXiv 版本解析、网页与 PDF 抓取、参考文献与图片预处理，再基于这些材料生成一份 reviewer-level 的自包含 Markdown 阅读报告。
 
+这个目录里有两类文档：
+- `SKILL.md`：给模型执行时读取的规则与工作流。
+- `README.md`：给人看的发布说明，帮助你快速理解、安装和使用这个 skill。
+
+## 适用场景
+- 单篇 arXiv 论文或 PDF 的系统性精读
+- 需要 reviewer-level 的理论、方法、实验和相关工作分析
+- 希望输出固定结构、可继续编辑的 Markdown 报告
+- 需要把关键图片、结果表、消融表和公式解释直接落到正文
+
+## 不适用场景
+- 纯摘要改写
+- 多论文综述或 survey 式横向整理
+- 没有原文依据的自由发挥
+- 只想要一个很短的口语化总结
+
+## 核心特性
+- 自动解析最新 arXiv 版本，并准备 `raw/`、`images/`、`cache/` 等工作区
+- 输出唯一主报告：`{arxiv_id}/{arxiv_id}_阅读报告.md`
+- 要求关键图片、主结果表、消融表、相关论文表直接写入主报告
+- 强化公式阅读：关键公式需要就地解释，并统一数学公式格式
+- 支持补充 hjfy、papers.cool 和真实外部文献线索，但最终交付物仍是单一 Markdown 报告
+
+## 目录结构
 ```text
-{arxiv_id}/{arxiv_id}_阅读报告.md
+paper-reading-skill/
+├── SKILL.md
+├── README.md
+├── requirements.txt
+├── agents/
+├── examples/
+├── references/
+├── scripts/
+└── templates/
 ```
 
-## v4 的新增重点
-
-在 final 版基础上，新增了“公式理解增强”：
-
-1. **关键公式优先级**
-   - A级：必须看懂
-   - B级：建议理解
-   - C级：知道用途即可
-
-2. **公式理解卡**
-   - 公式编号
-   - 公式原文
-   - 作用
-   - 符号表
-   - 自然语言翻译
-   - 分项拆解
-   - 与上下文公式的关系
-   - 训练/推理作用
-   - 代码对应
-   - toy example
-   - 删除该项后的影响
-   - 强假设
-   - 阅读难点提醒
-
-3. **三层翻译**
-   - 一句话直译
-   - 技术拆解
-   - 工程映射
-
-4. **Toy Example**
-   - 对最关键的 1–3 个公式，尽量给出极简数值例子
-
-## 其他保留约束
-
-- 主报告自包含
-- 图片必须按上下文插入
-- 相关论文表、主结果表、消融表、外部文献清单都必须写进主报告
-- hjfy / papers.cool 状态不展示在最终报告里
-
-## 运行方式
-
-```bash
-bash scripts/bootstrap.sh
-bash scripts/run_pipeline.sh "https://arxiv.org/abs/2510.12796"
-```
-
-或：
-
-```bash
-bash scripts/run_pipeline.sh "2510.12796"
-```
-
-## 输出结构
+运行 pipeline 后，会在当前工作目录生成：
 
 ```text
 {arxiv_id}/
-├── {arxiv_id}_阅读报告.md   # 唯一主体交付物
+├── {arxiv_id}_阅读报告.md
 ├── metadata.json
 ├── raw/
 ├── images/
@@ -71,25 +50,65 @@ bash scripts/run_pipeline.sh "2510.12796"
 └── logs/
 ```
 
+## 依赖与安装
+建议先在支持 `bash` 和 `python3` 的环境中安装依赖：
 
-## v3 新增：关键表格不得缺失
-这一版进一步强调：
-- 只要某张表支撑正文核心结论，就必须转写进主报告
-- 如果表太宽，可以拆表
-- 如果抽取不完整，必须回到 PDF/HTML 手工核对补齐
-- 不允许“正文讨论了 Table 3 / Table 5 / Table 9，但主报告没有对应表格”
+```bash
+bash scripts/bootstrap.sh
+```
 
+它会创建 skill 自己的虚拟环境并安装 `requirements.txt` 中的依赖。
 
-## v4 新增：公式解释必须就地插入
-这一版修复了 v3 中“公式理解卡集中堆放”的问题：
+如果你是把它作为 Codex skill 发布或分发，保留当前目录名 `paper-reading-skill/` 即可；公开调用名统一使用 `$paper-reading`。
 
-- 不再建议单独做一个公式集中区
-- 关键公式解释应像图片一样，插入到最适合的上下文位置
-- 例如：
-  - 问题定义公式 → 1.2 / 2.2
-  - 损失函数、核心模块公式 → 2.3
-  - 假设与边界相关公式 → 2.4
-  - 与实验现象直接相关的公式 → 3.x 附近
+## 最小使用方式
+在触发 skill 的 prompt 中明确指定论文输入，例如：
 
-目标是让读者能在同一阅读位置同时看到：
-**公式 + 图 + 表 + 解释**
+```text
+使用 $paper-reading 阅读这篇论文：https://arxiv.org/abs/2510.12796
+```
+
+若你需要手动预跑流水线，可在 skill 根目录执行：
+
+```bash
+bash scripts/run_pipeline.sh "https://arxiv.org/abs/2510.12796"
+```
+
+也可以直接传 arXiv ID：
+
+```bash
+bash scripts/run_pipeline.sh "2510.12796"
+```
+
+## 输出结果
+最终交付物只有一个主文件：
+
+```text
+{arxiv_id}/{arxiv_id}_阅读报告.md
+```
+
+其余目录的作用如下：
+- `raw/`：保存原始 PDF、网页和辅助抓取结果
+- `images/`：保存抽取或裁剪后的插图素材
+- `cache/`：保存中间结构化结果，便于补全报告
+- `logs/`：保存运行日志与校验信息
+
+## 关键约束
+- 必须先跑脚本，再在生成的主报告上继续补全，不要新建平行报告
+- 图片、表格和公式解释都应就地插入，不要集中堆到单独章节
+- 主结果表、关键消融表、相关论文表不能只留在缓存或附录
+- 数学公式统一使用 `$...$` 和独立的 `$$ ... $$` 公式块
+- 公式编号写在正文里，不在公式块内使用 `\tag{}`
+- 优先使用原始 PDF 和 arXiv 源码包中的 figure，不使用论文网页截图作为最终插图
+
+## 常见工作流
+1. 用 `$paper-reading` 指定目标论文。
+2. 让 skill 运行 `scripts/run_pipeline.sh` 完成预处理。
+3. 在 `{arxiv_id}/{arxiv_id}_阅读报告.md` 中补全分析正文。
+4. 交付前重新检查图片、表格、公式和外部文献是否都已落到主报告。
+
+## 面向发布的说明
+- `SKILL.md` 保留给模型的执行指令，不建议把它当 README 直接复用。
+- `agents/openai.yaml` 保存 UI 侧展示名、短描述和默认 prompt。
+- `examples/` 提供最小示例提示词。
+- `references/` 提供写作模板和补充规则，供模型按需读取。

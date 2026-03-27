@@ -34,6 +34,7 @@ def main() -> None:
     results["arxiv_abs"] = save_response(ids["arxiv_abs_url"], workspace / "raw" / "abs.html")
     results["arxiv_pdf"] = save_response(ids["arxiv_pdf_url"], workspace / "raw" / "paper.pdf", binary=True)
     results["ar5iv"] = save_response(ids["ar5iv_url"], workspace / "raw" / "ar5iv.html")
+    results["arxiv_src"] = save_response(ids["arxiv_src_url"], workspace / "raw" / "source.tar", binary=True)
     results["hjfy"] = save_response(ids["hjfy_url"], workspace / "raw" / "hjfy.html")
     results["papers_cool"] = save_response(ids["papers_cool_url"], workspace / "raw" / "papers_cool.html")
 

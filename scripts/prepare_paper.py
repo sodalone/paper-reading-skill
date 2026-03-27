@@ -125,7 +125,7 @@ def ensure_clean_dir(path: Path) -> None:
 
 def download_file(url: str, destination: Path) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    request = Request(url, headers={"User-Agent": "paper-reading-skill/1.0"})
+    request = Request(url, headers={"User-Agent": "paper-reading-skill"})
     with urlopen(request) as response, destination.open("wb") as handle:
         shutil.copyfileobj(response, handle)
     return destination
