@@ -1,3 +1,26 @@
+<div align="center">
+
+![header](https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,100:2563eb&height=280&section=header&text=paper-reading-skill&fontSize=58&fontColor=ffffff&desc=Reviewer-level%20paper%20reading%20reports&descAlignY=68)
+
+[![GitHub stars](https://img.shields.io/github/stars/sodalone/paper-reading-skill?style=social)](https://github.com/sodalone/paper-reading-skill/stargazers)
+[![GitHub watchers](https://img.shields.io/github/watchers/sodalone/paper-reading-skill?style=social)](https://github.com/sodalone/paper-reading-skill/watchers)
+[![GitHub forks](https://img.shields.io/github/forks/sodalone/paper-reading-skill?style=social)](https://github.com/sodalone/paper-reading-skill/network/members)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
+[![Markdown](https://img.shields.io/badge/output-Markdown-0A66C2)](#输出结构)
+[![ArXiv](https://img.shields.io/badge/input-arXiv-b31b1b)](#运行方式)
+[![Codex Skill](https://img.shields.io/badge/Codex-Skill-10a37f)](#paper-reviewer-final-v4-skill)
+
+<p>
+  <strong>一个面向论文精读、审稿式分析与公式理解增强的可执行 Codex Skill</strong>
+</p>
+
+<p>
+  输出 <strong>自包含</strong>、<strong>固定章节</strong>、<strong>严格 reviewer-level</strong>、<strong>公式友好</strong> 的高质量论文阅读报告
+</p>
+
+
+</div>
+
 # Paper Reading
 
 `Paper Reading` 是一个面向单篇 AI 论文的可执行 Codex skill。它会先运行内置脚本完成 arXiv 版本解析、网页与 PDF 抓取、参考文献与图片预处理，再基于这些材料生成一份 reviewer-level 的自包含 Markdown 阅读报告。
