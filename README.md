@@ -21,8 +21,6 @@
 
 </div>
 
-# Paper Reading
-
 `Paper Reading` 是一个面向单篇 AI 论文的可执行 Codex skill。它会先运行内置脚本完成 arXiv 版本解析、网页与 PDF 抓取、参考文献与图片预处理，再基于这些材料生成一份 reviewer-level 的自包含 Markdown 阅读报告。
 
 这个目录里有两类文档：
