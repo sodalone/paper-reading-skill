@@ -21,6 +21,8 @@ python "${ROOT_DIR}/scripts/build_report_skeleton.py" --input "${INPUT}" --root 
 python "${ROOT_DIR}/scripts/validate_report_text.py" --input "${INPUT}" --root "${PWD}"
 
 echo "Pipeline complete."
+echo "Before delivery, after filling the report, run the figure coverage validator:"
+echo "  python \"${ROOT_DIR}/scripts/validate_report_figures.py\" --input \"${INPUT}\" --root \"${PWD}\""
 echo "Tip: before reading/editing Chinese reports in Windows PowerShell, run:"
 echo "  \$utf8=[System.Text.UTF8Encoding]::new(\$false); chcp 65001 > \$null; [Console]::InputEncoding=\$utf8; [Console]::OutputEncoding=\$utf8; \$OutputEncoding=\$utf8"
 echo "Re-run the text validator before delivery if the report was edited manually."

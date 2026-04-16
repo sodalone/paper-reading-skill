@@ -46,6 +46,11 @@
 - 强化公式阅读：关键公式需要就地解释，并统一数学公式格式
 - 支持补充 hjfy、papers.cool 和真实外部文献线索，但最终交付物仍是单一 Markdown 报告
 
+## 修改记录
+| 版本 | 日期 | 功能 |
+|---|---|---|
+| v0.2.0 | 2026-04-16 | 强化关键图覆盖闭环：要求读取 `cache/images_manifest.json`，建立图像覆盖决策表，并在交付前用 `scripts/validate_report_figures.py` 校验方法总览图、模型结构图、模块图、主结果图、消融图和失败案例图是否已插入主报告。 |
+
 ## 目录结构
 ```text
 paper-reading-skill/
