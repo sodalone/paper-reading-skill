@@ -29,7 +29,7 @@ bash scripts/bootstrap.sh
 流水线会在当前工作目录下创建：
 
 ```text
-{arxiv_id}/
+{arxiv_id}_{title}/
 ├── {arxiv_id}_阅读报告.md
 ├── metadata.json
 ├── raw/
@@ -40,9 +40,10 @@ bash scripts/bootstrap.sh
 
 其中：
 - `{arxiv_id}` 是**不带版本号**的 arXiv 基础 ID，例如 `2510.12796`
+- `{title}` 是从 arXiv 标题解析并清洗后的文件夹安全标题，空格统一转为 `_`，例如 `2510.12796_Title_Words`
 - `paper_id_with_version` 是带版本号的 ID，例如 `2510.12796v2`
 
-你必须在生成的 `{arxiv_id}/{arxiv_id}_阅读报告.md` 上继续补全，而不是新建另一份平行报告。
+你必须在生成的 `{arxiv_id}_{title}/{arxiv_id}_阅读报告.md` 上继续补全，而不是新建另一份平行报告。
 
 ---
 
@@ -52,7 +53,7 @@ bash scripts/bootstrap.sh
 最终给用户阅读的唯一主体文件是：
 
 ```text
-{arxiv_id}/{arxiv_id}_阅读报告.md
+{arxiv_id}_{title}/{arxiv_id}_阅读报告.md
 ```
 
 ### 2.2 禁止把关键内容拆到旁支文件
@@ -124,7 +125,7 @@ bash scripts/bootstrap.sh
 所有输出统一保存到：
 
 ```text
-{arxiv_id}/
+{arxiv_id}_{title}/
 ```
 
 ### 3.2 主报告命名
@@ -135,9 +136,9 @@ bash scripts/bootstrap.sh
 ```
 
 ### 3.3 辅助资源
-- 图片保存到：`{arxiv_id}/images/`
-- 原始网页和 PDF 保存到：`{arxiv_id}/raw/`
-- 中间提取结果保存到：`{arxiv_id}/cache/`
+- 图片保存到：`{arxiv_id}_{title}/images/`
+- 原始网页和 PDF 保存到：`{arxiv_id}_{title}/raw/`
+- 中间提取结果保存到：`{arxiv_id}_{title}/cache/`
 
 注意：这些都是**辅助材料**，最终可交付内容仍然是主报告 Markdown。
 
@@ -148,7 +149,7 @@ bash scripts/bootstrap.sh
 每次执行本 skill，必须按如下顺序进行：
 
 1. 运行 `bash scripts/run_pipeline.sh "<论文输入>"`
-2. 检查 `{arxiv_id}/metadata.json`
+2. 检查 `{arxiv_id}_{title}/metadata.json`
 3. 读取以下输入：
    - `raw/abs.html`
    - `raw/paper.pdf`
@@ -157,7 +158,7 @@ bash scripts/bootstrap.sh
    - `raw/papers_cool.html`
    - `cache/references.json`
    - `cache/images_manifest.json`
-4. 打开 `{arxiv_id}/{arxiv_id}_阅读报告.md`
+4. 打开 `{arxiv_id}_{title}/{arxiv_id}_阅读报告.md`
 5. 基于论文原文补全完整内容
 6. 将关键图片按上下文插入相关小节
 7. 将关键实验表和消融结果直接整理进 Markdown 正文
@@ -623,7 +624,7 @@ $$
 输出前必须确认：
 
 - 是否先运行了 `scripts/run_pipeline.sh`
-- 是否输出到 `{arxiv_id}/`
+- 是否输出到 `{arxiv_id}_{title}/`
 - 是否主报告名正确
 - 是否解析了 arXiv 最新版本
 - 是否给出 arXiv / hjfy / papers.cool 三个链接

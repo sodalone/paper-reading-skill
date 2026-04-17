@@ -14,7 +14,7 @@ def main() -> None:
 
     ids = resolve_ids(args.input)
     root = Path(args.root).resolve()
-    workspace = ensure_workspace(root, ids["arxiv_id"])
+    workspace = ensure_workspace(root, ids["arxiv_id"], ids.get("title"), ids.get("workspace_name"))
 
     metadata = {
         **ids,
