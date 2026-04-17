@@ -41,10 +41,16 @@
 
 ## 核心特性
 - 自动解析最新 arXiv 版本，并准备 `raw/`、`images/`、`cache/` 等工作区
-- 输出唯一主报告：`{arxiv_id}/{arxiv_id}_阅读报告.md`
+- 输出唯一主报告：`{arxiv_id}_{title}/{arxiv_id}_阅读报告.md`
 - 要求关键图片、主结果表、消融表、相关论文表直接写入主报告
 - 强化公式阅读：关键公式需要就地解释，并统一数学公式格式
 - 支持补充 hjfy、papers.cool 和真实外部文献线索，但最终交付物仍是单一 Markdown 报告
+
+## 功能版本记录
+| 日期 | 功能版本 | 对应分支 |
+|---|---|---|
+| 2026-04-16 | 输出目录命名改为 `{arxiv_id}_{title}` | `release_v2` |
+| 2026-03-23 | 初始版本 | `release_v1` |
 
 ## 目录结构
 ```text
@@ -62,7 +68,7 @@ paper-reading-skill/
 运行 pipeline 后，会在当前工作目录生成：
 
 ```text
-{arxiv_id}/
+{arxiv_id}_{title}/
 ├── {arxiv_id}_阅读报告.md
 ├── metadata.json
 ├── raw/
@@ -70,6 +76,8 @@ paper-reading-skill/
 ├── cache/
 └── logs/
 ```
+
+其中 `{title}` 来自 arXiv 标题，会清洗为文件夹安全文本并把空格转为 `_`。
 
 ## 依赖与安装
 建议先在支持 `bash` 和 `python3` 的环境中安装依赖：
@@ -105,7 +113,7 @@ bash scripts/run_pipeline.sh "2510.12796"
 最终交付物只有一个主文件：
 
 ```text
-{arxiv_id}/{arxiv_id}_阅读报告.md
+{arxiv_id}_{title}/{arxiv_id}_阅读报告.md
 ```
 
 其余目录的作用如下：
@@ -125,7 +133,7 @@ bash scripts/run_pipeline.sh "2510.12796"
 ## 常见工作流
 1. 用 `$paper-reading` 指定目标论文。
 2. 让 skill 运行 `scripts/run_pipeline.sh` 完成预处理。
-3. 在 `{arxiv_id}/{arxiv_id}_阅读报告.md` 中补全分析正文。
+3. 在 `{arxiv_id}_{title}/{arxiv_id}_阅读报告.md` 中补全分析正文。
 4. 交付前重新检查图片、表格、公式和外部文献是否都已落到主报告。
 
 ## 面向发布的说明

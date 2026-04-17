@@ -5,7 +5,7 @@ https://arxiv.org/abs/2510.12796
 
 要求：
 1. 先运行 skill 自带 scripts
-2. 输出到对应 arxiv_id 文件夹
+2. 输出到对应 {arxiv_id}_{title} 文件夹
 3. 主报告保存为 {arxiv_id}_阅读报告.md
 4. 最终只交付一份自包含的 Markdown 报告
 5. 相关论文表、主结果表、消融表都要直接写入主报告

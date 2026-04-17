@@ -15,6 +15,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from common import build_workspace_name, fetch_arxiv_metadata
+
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 TEXT_SUFFIXES = {".txt", ".md", ".tex"}
@@ -645,6 +647,14 @@ def main() -> int:
     args = parse_args()
     kind = detect_input_kind(args.input, args.input_type)
     paper_id = resolve_paper_id(args.input, args.paper_id, args.source_tar)
+    paper_title_for_dir: str | None = None
+    arxiv_id_for_dir = parse_arxiv_id(args.input)
+    if arxiv_id_for_dir and not args.paper_id:
+        try:
+            paper_title_for_dir = fetch_arxiv_metadata(arxiv_id_for_dir).get("title")
+            paper_id = build_workspace_name(arxiv_id_for_dir, paper_title_for_dir)
+        except Exception:
+            paper_title_for_dir = None
 
     output_root = Path(args.output_root).resolve()
     output_dir = output_root / paper_id
@@ -661,7 +671,7 @@ def main() -> int:
     ensure_clean_dir(downloads_dir)
 
     unresolved_gaps: list[str] = []
-    title_guess: str | None = None
+    title_guess: str | None = paper_title_for_dir
     local_pdf: Path | None = None
     local_source_tar: Path | None = None
     text_method: str | None = None
