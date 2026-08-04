@@ -18,6 +18,7 @@ def main() -> None:
 
     metadata = {
         **ids,
+        "workspace_name": workspace.name,
         "workspace": str(workspace),
         "report_path": str(workspace / f'{ids["arxiv_id"]}_阅读报告.md'),
         "created_at": datetime.utcnow().isoformat() + "Z",

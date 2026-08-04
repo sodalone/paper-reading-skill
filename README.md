@@ -24,8 +24,11 @@
 ## 功能版本记录
 | 日期 | 功能版本 | 对应分支 |
 |---|---|---|
+| 2026-08-04 | 理解优先报告结构、Claim 证据追溯、独立工作区与可读性验证 | `release_v2` / `main` |
 | 2026-04-16 | 输出目录命名改为 `{arxiv_id}_{title}` | `release_v1.1` |
 | 2026-03-23 | 初始版本 | `release_v1` |
+
+当前 `main` 即 `release_v2`，两者指向同一个发布提交。
 
 `Paper Reading` 是一个面向单篇 AI 论文的可执行 Codex skill。它会先运行内置脚本完成 arXiv 版本解析、网页与 PDF 抓取、参考文献与图片预处理，再基于这些材料生成一份 reviewer-level 的自包含 Markdown 阅读报告。
 

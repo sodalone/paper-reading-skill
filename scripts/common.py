@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -15,6 +16,7 @@ META_TITLE_RE = re.compile(r'<meta[^>]+name=["\']citation_title["\'][^>]+content
 INVALID_PATH_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f]+')
 WHITESPACE_RE = re.compile(r'\s+')
 MAX_TITLE_SLUG_CHARS = 140
+WORKSPACE_NAME_ENV = "PAPER_READING_WORKSPACE_NAME"
 
 
 def extract_arxiv_id(text: str) -> Optional[Tuple[str, Optional[str]]]:
@@ -89,6 +91,17 @@ def build_workspace_name(arxiv_id: str, title: Optional[str]) -> str:
     return f"{arxiv_id}_{title_slug}" if title_slug else arxiv_id
 
 
+def validate_workspace_name(workspace_name: str) -> str:
+    normalized = workspace_name.strip()
+    if not normalized or normalized in {".", ".."}:
+        raise ValueError("Workspace name must be a non-empty directory name")
+    if Path(normalized).name != normalized or "/" in normalized or "\\" in normalized:
+        raise ValueError("Workspace name must not contain path separators")
+    if INVALID_PATH_CHARS_RE.search(normalized):
+        raise ValueError(f"Workspace name contains invalid path characters: {workspace_name}")
+    return normalized
+
+
 def resolve_ids(input_text: str) -> Dict[str, str]:
     parsed = extract_arxiv_id(input_text)
     if not parsed:
@@ -115,9 +128,11 @@ def resolve_ids(input_text: str) -> Dict[str, str]:
 
 
 def ensure_workspace(root: Path, arxiv_id: str, title: Optional[str] = None, workspace_name: Optional[str] = None) -> Path:
-    desired_name = workspace_name or build_workspace_name(arxiv_id, title)
+    requested_name = os.environ.get(WORKSPACE_NAME_ENV)
+    explicit_workspace = bool(requested_name)
+    desired_name = validate_workspace_name(requested_name) if requested_name else workspace_name or build_workspace_name(arxiv_id, title)
     base = root / desired_name
-    if not base.exists():
+    if not base.exists() and not explicit_workspace:
         matches = sorted(path for path in root.glob(f"{arxiv_id}_*") if path.is_dir())
         if len(matches) == 1:
             base = matches[0]

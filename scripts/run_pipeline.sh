@@ -2,12 +2,30 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: bash scripts/run_pipeline.sh '<arxiv url or id>'"
+  echo "Usage: bash scripts/run_pipeline.sh '<arxiv url or id>' [--workspace-name '<directory name>']"
   exit 1
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INPUT="$1"
+shift
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --workspace-name)
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        echo "Error: --workspace-name requires a directory name"
+        exit 2
+      fi
+      export PAPER_READING_WORKSPACE_NAME="$2"
+      shift 2
+      ;;
+    *)
+      echo "Error: unknown argument: $1"
+      exit 2
+      ;;
+  esac
+done
 
 if [[ -d "${ROOT_DIR}/.venv-paper-reading" ]]; then
   source "${ROOT_DIR}/.venv-paper-reading/bin/activate"
@@ -19,6 +37,7 @@ python "${ROOT_DIR}/scripts/extract_references.py" --input "${INPUT}" --root "${
 python "${ROOT_DIR}/scripts/extract_images.py" --input "${INPUT}" --root "${PWD}"
 python "${ROOT_DIR}/scripts/build_report_skeleton.py" --input "${INPUT}" --root "${PWD}"
 python "${ROOT_DIR}/scripts/validate_report_text.py" --input "${INPUT}" --root "${PWD}"
+python "${ROOT_DIR}/scripts/validate_report.py" --input "${INPUT}" --root "${PWD}"
 
 echo "Pipeline complete."
 echo "Tip: before reading/editing Chinese reports in Windows PowerShell, run:"

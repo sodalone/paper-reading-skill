@@ -1,4 +1,4 @@
 interface:
   display_name: "Paper Reading"
-  short_description: "Reviewer-level AI paper reading with a single self-contained Markdown report"
-  default_prompt: "Use $paper-reading to analyze this AI paper with reviewer-level rigor, real references, inline figures and tables, and a single self-contained Markdown report."
+  short_description: "理解优先、证据可追溯、支持审稿与复现的单篇 AI 论文精读"
+  default_prompt: "Use $paper-reading to explain this paper through an understanding-first main path, then audit its claims, experiments, and reproducibility in appendices."

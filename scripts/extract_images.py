@@ -10,10 +10,135 @@ from common import get_workspace, write_json
 
 IMG_EXTS = {".pdf", ".png", ".jpg", ".jpeg", ".eps"}
 GRAPHICS_RE = re.compile(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}')
+OVERPIC_BEGIN_RE = re.compile(r'\\begin\{overpic\}(?:\[[^\]]*\])?\{([^}]+)\}', re.S)
+OVERPIC_END = r'\end{overpic}'
+PUT_RE = re.compile(r'\\put\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*\{', re.S)
 CAPTION_RE = re.compile(r'\\caption(?:\[[^\]]*\])?\{(.+?)\}', re.S)
 LABEL_RE = re.compile(r'\\label\{([^}]+)\}')
 SECTION_RE = re.compile(r'\\(section|subsection|subsubsection)\{(.+?)\}')
 INCLUDE_RE = re.compile(r'\\(input|include)\{([^}]+)\}')
+
+
+def find_matching_brace(text: str, start: int):
+    if start >= len(text) or text[start] != "{":
+        return None
+    depth = 0
+    for index in range(start, len(text)):
+        char = text[index]
+        if char == "{" and (index == 0 or text[index - 1] != "\\"):
+            depth += 1
+        elif char == "}" and (index == 0 or text[index - 1] != "\\"):
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+
+def unwrap_latex_command(text: str, command: str, leading_arg: bool = False):
+    if leading_arg:
+        pattern = re.compile(rf"\\{command}\{{([^{{}}]+)\}}\{{")
+    else:
+        pattern = re.compile(rf"\\{command}\{{")
+    match = pattern.search(text)
+    if not match:
+        return text, None
+    opening = match.end() - 1
+    closing = find_matching_brace(text, opening)
+    if closing is None:
+        return text, None
+    inner = text[opening + 1 : closing]
+    arg = match.group(1) if leading_arg else None
+    return text[: match.start()] + inner + text[closing + 1 :], arg
+
+
+def clean_overlay_text(raw: str):
+    rotation = 0.0
+    color_name = "black"
+    text = raw.strip()
+
+    changed, arg = unwrap_latex_command(text, "rotatebox", leading_arg=True)
+    if arg is not None:
+        text = changed
+        try:
+            rotation = float(arg)
+        except ValueError:
+            rotation = 0.0
+
+    changed, arg = unwrap_latex_command(text, "textcolor", leading_arg=True)
+    if arg is not None:
+        text = changed
+        color_name = arg.strip().lower() or "black"
+
+    text = text.replace(r"\cmark", "✓").replace(r"\xmark", "✗")
+    text = re.sub(r"\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|bfseries|itshape)\b", " ", text)
+    for _ in range(4):
+        updated = re.sub(r"\\[A-Za-z]+\*?\{([^{}]*)\}", r"\1", text)
+        if updated == text:
+            break
+        text = updated
+    text = text.replace("{", " ").replace("}", " ")
+    text = re.sub(r"\\([%&#_$])", r"\1", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text, rotation, color_name
+
+
+def parse_put_overlays(text: str):
+    overlays = []
+    cursor = 0
+    while True:
+        match = PUT_RE.search(text, cursor)
+        if not match:
+            break
+        opening = match.end() - 1
+        closing = find_matching_brace(text, opening)
+        if closing is None:
+            break
+        raw = text[opening + 1 : closing]
+        label, rotation, color_name = clean_overlay_text(raw)
+        overlays.append(
+            {
+                "x": float(match.group(1)),
+                "y": float(match.group(2)),
+                "text": label,
+                "rotation": int(rotation) if rotation.is_integer() else rotation,
+                "color_name": color_name,
+            }
+        )
+        cursor = closing + 1
+    return overlays
+
+
+def parse_graphics_events(block: str):
+    events = []
+    overpic_spans = []
+    for match in OVERPIC_BEGIN_RE.finditer(block):
+        end = block.find(OVERPIC_END, match.end())
+        if end < 0:
+            end = len(block)
+        overpic_spans.append((match.start(), end + len(OVERPIC_END)))
+        events.append(
+            {
+                "position": match.start(),
+                "target": match.group(1).split(",")[0].strip(),
+                "overlays": parse_put_overlays(block[match.end() : end]),
+            }
+        )
+
+    for match in GRAPHICS_RE.finditer(block):
+        if any(start <= match.start() < end for start, end in overpic_spans):
+            continue
+        events.append(
+            {
+                "position": match.start(),
+                "target": match.group(1).split(",")[0].strip(),
+                "overlays": [],
+            }
+        )
+
+    events.sort(key=lambda event: event["position"])
+    for event in events:
+        event.pop("position", None)
+    return events
 
 
 def extract_tar(src_tar: Path, out_dir: Path):
@@ -134,9 +259,9 @@ def parse_tex_refs(segments):
             block = match.group(1)
             caption_m = CAPTION_RE.search(block)
             label_m = LABEL_RE.search(block)
-            graphics = GRAPHICS_RE.findall(block)
-            for g in graphics:
-                g = g.split(",")[0].strip()
+            graphics = parse_graphics_events(block)
+            for graphic in graphics:
+                g = graphic["target"]
                 refs.append(
                     {
                         "graphics_target": g,
@@ -146,6 +271,7 @@ def parse_tex_refs(segments):
                         "first_reference_hint": current_section,
                         "source_tex": seg["source_tex"],
                         "order": seg["order"],
+                        "overlays": graphic["overlays"],
                     }
                 )
     return refs
@@ -166,18 +292,52 @@ def find_image(src_dir: Path, target: str):
     return candidates[0] if candidates else None
 
 
-def convert_to_png(src: Path, dst: Path):
+def convert_to_png(src: Path, dst: Path, overlays=None):
+    overlays = overlays or []
+    warnings = []
     ext = src.suffix.lower()
-    if ext in {".png", ".jpg", ".jpeg"}:
+    if ext in {".png", ".jpg", ".jpeg"} and not overlays:
         dst.write_bytes(src.read_bytes())
-        return True, "copied"
-    if ext == ".pdf":
+        return True, "copied", warnings
+    if ext in {".pdf", ".png", ".jpg", ".jpeg"}:
         doc = fitz.open(src)
+        if ext != ".pdf":
+            converted = fitz.open("pdf", doc.convert_to_pdf())
+            doc.close()
+            doc = converted
         page = doc[0]
+        color_map = {
+            "black": (0, 0, 0),
+            "red": (1, 0, 0),
+            "green": (0, 0.6, 0),
+            "blue": (0, 0, 1),
+            "white": (1, 1, 1),
+        }
+        for overlay in overlays:
+            text = str(overlay.get("text") or "").replace("✓", "OK").replace("✗", "X")
+            if not text:
+                continue
+            rotation = int(overlay.get("rotation") or 0) % 360
+            if rotation not in {0, 90, 180, 270}:
+                warnings.append(f"unsupported overlay rotation {rotation}; rendered without rotation")
+                rotation = 0
+            point = fitz.Point(
+                page.rect.width * float(overlay.get("x", 0)) / 100.0,
+                page.rect.height * (1.0 - float(overlay.get("y", 0)) / 100.0),
+            )
+            page.insert_text(
+                point,
+                text,
+                fontsize=max(6, page.rect.width / 45),
+                color=color_map.get(str(overlay.get("color_name") or "black").lower(), (0, 0, 0)),
+                rotate=rotation,
+            )
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
         pix.save(str(dst))
-        return True, "pdf_rendered"
-    return False, f"unsupported:{ext}"
+        doc.close()
+        mode = "pdf_rendered_with_overpic_overlay" if overlays else "pdf_rendered"
+        return True, mode, warnings
+    return False, f"unsupported:{ext}", warnings
 
 
 def main():
@@ -215,7 +375,7 @@ def main():
                 if not src_img:
                     continue
                 out_path = img_dir / f"figure_{idx:02d}.png"
-                ok, mode = convert_to_png(src_img, out_path)
+                ok, mode, warnings = convert_to_png(src_img, out_path, ref.get("overlays"))
                 if not ok:
                     continue
                 figures.append({
@@ -230,6 +390,7 @@ def main():
                     "first_reference_hint": ref.get("first_reference_hint", ""),
                     "source_tex": ref.get("source_tex", ""),
                     "conversion": mode,
+                    "overlay_warnings": warnings,
                 })
                 idx += 1
             note = "图片优先来自 arXiv 源码包中的作者原始 figure 文件，并结合 LaTeX 引用关系进行定位。"
