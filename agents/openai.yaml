@@ -1,4 +1,4 @@
 interface:
   display_name: "Paper Reading"
-  short_description: "理解优先、证据可追溯、支持审稿与复现的单篇 AI 论文精读"
-  default_prompt: "Use $paper-reading to explain this paper through an understanding-first main path, then audit its claims, experiments, and reproducibility in appendices."
+  short_description: "主线清楚、内容完整、证据可追溯的单篇 AI 论文精读"
+  default_prompt: "Use $paper-reading to produce a clear but complete paper report covering every core claim, paper-type-appropriate evidence, key assumptions or implementation boundaries, and verified related work."

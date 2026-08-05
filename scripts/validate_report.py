@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the report's understanding-first structure and final readability gates."""
+"""Validate report readability without allowing depth evidence to disappear."""
 
 from __future__ import annotations
 
@@ -18,17 +18,17 @@ IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 REQUIRED_HEADINGS = [
     "## 0. 三分钟读懂",
     "### 0.1 论文解决什么问题",
-    "### 0.2 核心办法是什么",
-    "### 0.3 最重要的结果",
+    "### 0.2 核心思路是什么",
+    "### 0.3 最重要的结论与证据",
     "### 0.4 最终判断",
     "### 0.5 阅读路线",
-    "## 1. 先建立直觉",
-    "## 2. 方法如何工作",
+    "## 1. 建立心智模型",
+    "## 2. 核心思路如何成立",
     "## 3. 证据是否成立",
     "### 3.1 Claim—Evidence—Verdict 总表",
     "## 4. 最终判断与适用边界",
-    "## 附录 A：完整实验表",
-    "## 附录 B：数学与实现细节",
+    "## 附录 A：完整证据与结果",
+    "## 附录 B：推导、算法、协议与实现细节",
     "## 附录 C：本报告实际使用的外部文献",
     "## 附录 D：证据定位",
 ]
@@ -39,10 +39,17 @@ FINAL_PLACEHOLDERS = [
     "论文标题待核对",
     "| C1 |  |  |  |  |",
     "- 阅读建议：\n",
-    "- 复现建议：\n",
+    "- 复现/验证建议：\n",
 ]
 
 FORBIDDEN_WORK_LABELS = ["A级公式", "B级公式", "C级公式", "公式理解卡"]
+
+EXPLICIT_NO_EXTERNAL_SOURCES = [
+    "本报告未使用外部文献",
+    "当前未检索到",
+    "可靠来源不足",
+    "未找到足够的可靠来源",
+]
 
 LINK_SECTION_PATTERNS = [
     r"^- 原始输入链接：https://arxiv\.org/abs/\d{4}\.\d{4,5}$",
@@ -103,6 +110,15 @@ def normalize_paragraph(paragraph: str) -> str:
     return paragraph
 
 
+def clean_text(text: str) -> str:
+    return HTML_COMMENT_RE.sub("", text).strip()
+
+
+def table_data_row_count(section: str) -> int:
+    rows = re.findall(r"(?m)^\|.*\|\s*$", section)
+    return max(0, len(rows) - 2) if len(rows) >= 2 else 0
+
+
 def duplicate_long_paragraphs(text: str) -> list[str]:
     cleaned = HTML_COMMENT_RE.sub("", text)
     paragraphs = []
@@ -133,33 +149,49 @@ def validate_report(text: str, final: bool = False) -> tuple[list[str], list[str
     if len(link_bullets) != len(LINK_SECTION_PATTERNS):
         errors.append("0.6 论文与链接必须且只能包含五行固定字段。")
 
-    appendix_start = text.find("## 附录 A：完整实验表")
+    appendix_start = text.find("## 附录 A：完整证据与结果")
     main_text = text[:appendix_start] if appendix_start >= 0 else text
     summary = extract_section(text, "## 0. 三分钟读懂", "## ")
-    summary_clean = HTML_COMMENT_RE.sub("", summary).strip()
+    summary_clean = clean_text(summary)
     main_formula_count = len(DISPLAY_MATH_RE.findall(main_text))
     main_h3_count = len(re.findall(r"(?m)^### ", main_text))
     image_count = len(IMAGE_RE.findall(text))
     table_rows = len(re.findall(r"(?m)^\|.*\|\s*$", text))
+    appendix_text = text[appendix_start:] if appendix_start >= 0 else ""
+    evidence = extract_section(text, "## 3. 证据是否成立", "## ")
+    appendix_a = extract_section(text, "## 附录 A：完整证据与结果", "## ")
+    appendix_b = extract_section(text, "## 附录 B：推导、算法、协议与实现细节", "## ")
+    appendix_c = extract_section(text, "## 附录 C：本报告实际使用的外部文献", "## ")
+    appendix_d = extract_section(text, "## 附录 D：证据定位", "## ")
+    claim_ids = set(re.findall(r"(?m)^\|\s*(C\d+)\b", evidence))
+    located_claim_ids = set(re.findall(r"(?m)^\|\s*(C\d+)\b", appendix_d))
+    external_source_count = len(re.findall(r"\[[^\]]+\]\(https?://[^)]+\)", appendix_c))
+    external_source_rows = table_data_row_count(appendix_c)
 
     metrics = {
         "summary_chars": len(summary_clean),
-        "main_chars": len(HTML_COMMENT_RE.sub("", main_text)),
+        "main_chars": len(clean_text(main_text)),
+        "appendix_chars": len(clean_text(appendix_text)),
+        "total_chars": len(clean_text(text)),
         "main_formula_count": main_formula_count,
         "main_h3_count": main_h3_count,
         "image_count": image_count,
         "table_rows": table_rows,
+        "claim_count": len(claim_ids),
+        "external_source_count": external_source_count,
+        "external_source_rows": external_source_rows,
+        "evidence_locator_count": len(located_claim_ids),
     }
 
-    if metrics["main_chars"] > 14000:
-        warnings.append(f"正文主线为 {metrics['main_chars']} 字符，超过建议的 14,000；考虑下沉细节到附录。")
-    if metrics["main_chars"] > 20000:
-        errors.append(f"正文主线为 {metrics['main_chars']} 字符，超过可读性上限 20,000。")
-    if main_formula_count > 3:
-        warnings.append(f"正文含 {main_formula_count} 个块公式；非理论论文建议控制在 0–3 个。")
-    if main_formula_count > 5:
-        errors.append(f"正文含 {main_formula_count} 个块公式，超过理论论文主线最多 5 个的上限。")
-    # The canonical understanding-first template contains 25 H3 headings.
+    if final and metrics["main_chars"] < 9000:
+        warnings.append(f"正文主线为 {metrics['main_chars']} 字符；请确认不是通过省略核心 Claim、关键机制或决定性证据换取简短。")
+    if metrics["main_chars"] > 18000:
+        warnings.append(f"正文主线为 {metrics['main_chars']} 字符，超过通常的 18,000；可把不影响首次理解的细节移动到附录，但不得删除。")
+    if metrics["main_chars"] > 26000:
+        warnings.append(f"正文主线为 {metrics['main_chars']} 字符；请重新检查阅读路径和重复论证。")
+    if main_formula_count > 8:
+        warnings.append(f"正文含 {main_formula_count} 个块公式；请确认每个公式都决定核心机制或结论，其余移入附录 B。")
+    # The canonical cross-paper template contains 25 H3 headings.
     # Warn only when authors add enough extra fragmentation to exceed it.
     if main_h3_count > 26:
         warnings.append(f"正文有 {main_h3_count} 个三级标题，可能过度切碎阅读路径。")
@@ -175,17 +207,32 @@ def validate_report(text: str, final: bool = False) -> tuple[list[str], list[str
                 errors.append(f"最终报告暴露内部工作标签：{label}")
         if not 300 <= len(summary_clean) <= 2200:
             errors.append(
-                f"三分钟摘要为 {len(summary_clean)} 字符；应在 300–2,200 字符之间并覆盖问题、方法、结果、判断和路线。"
+                f"三分钟摘要为 {len(summary_clean)} 字符；应在 300–2,200 字符之间并覆盖问题、核心思路、结论与证据、判断和路线。"
             )
-        if image_count < 1:
-            errors.append("最终报告没有插入任何 Markdown 图片。")
-        evidence = extract_section(text, "## 3. 证据是否成立", "## ")
         if "| Claim |" not in evidence:
             errors.append("证据章节缺少 Claim—Evidence—Verdict 表。")
         if "| Claim | 原文位置 |" not in evidence:
             errors.append("Claim—Evidence—Verdict 表缺少逐条原文位置列。")
-        if len(re.findall(r"(?m)^\|\s*C\d+\b", evidence)) < 2:
-            errors.append("Claim—Evidence—Verdict 表至少应包含两条已填写 Claim。")
+        if len(claim_ids) < 1:
+            errors.append("Claim—Evidence—Verdict 表至少应包含一条已填写的核心 Claim。")
+
+        missing_locators = sorted(claim_ids - located_claim_ids)
+        if missing_locators:
+            errors.append("附录 D 缺少以下 Claim 的独立证据定位：" + "、".join(missing_locators))
+
+        if len(clean_text(appendix_a)) < 20:
+            errors.append("附录 A 过于简略；必须保留与论文类型匹配的完整证据与结果，或明确说明不适用/原文未提供及其判断影响。")
+
+        if len(clean_text(appendix_b)) < 20:
+            errors.append("附录 B 过于简略；必须保留必要的推导、算法、协议或实现细节，无相关内容时也要明确说明。")
+
+        if external_source_rows > external_source_count:
+            errors.append("附录 C 的每条外部文献记录都必须包含可点击的官方或 arXiv 直接链接。")
+        if external_source_rows == 0 and external_source_count == 0 and not any(
+            marker in appendix_c for marker in EXPLICIT_NO_EXTERNAL_SOURCES
+        ):
+            errors.append("附录 C 不能留空；未使用外部文献时必须明确说明原因或检索边界。")
+
         duplicates = duplicate_long_paragraphs(text)
         if duplicates:
             errors.append(f"发现 {len(duplicates)} 个长度至少 100 字符的重复段落。")

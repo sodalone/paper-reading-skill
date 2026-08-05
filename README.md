@@ -8,14 +8,14 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 [![Markdown](https://img.shields.io/badge/output-Markdown-0A66C2)](#输出结构)
 [![ArXiv](https://img.shields.io/badge/input-arXiv-b31b1b)](#运行方式)
-[![Codex Skill](https://img.shields.io/badge/Codex-Skill-10a37f)](#paper-reviewer-final-v4-skill)
+[![Codex Skill](https://img.shields.io/badge/Codex-Skill-10a37f)](#paper-reading)
 
 <p>
-  <strong>一个面向论文精读、审稿式分析与公式理解增强的可执行 Codex Skill</strong>
+  <strong>一个面向多种论文类型的精读、证据审查与验证分析 Skill</strong>
 </p>
 
 <p>
-  输出 <strong>自包含</strong>、<strong>固定章节</strong>、<strong>严格 reviewer-level</strong>、<strong>公式友好</strong> 的高质量论文阅读报告
+  输出 <strong>自包含</strong>、<strong>主线清楚</strong>、<strong>核心内容完整</strong>、<strong>证据可追溯</strong> 的 Markdown 论文阅读报告
 </p>
 
 
@@ -24,23 +24,32 @@
 ## 功能版本记录
 | 日期 | 功能版本 | 对应分支 |
 |---|---|---|
-| 2026-08-04 | 理解优先报告结构、Claim 证据追溯、独立工作区与可读性验证 | `release_v2` / `main` |
+| 2026-08-05 | 通用论文模板、按论文类型选择证据载体、Claim 证据追溯与可读性验证 | `release_v2` / `main` |
 | 2026-04-16 | 输出目录命名改为 `{arxiv_id}_{title}` | `release_v1.1` |
 | 2026-03-23 | 初始版本 | `release_v1` |
 
 当前 `main` 即 `release_v2`，两者指向同一个发布提交。
 
-`Paper Reading` 是一个面向单篇 AI 论文的可执行 Codex skill。它会先运行内置脚本完成 arXiv 版本解析、网页与 PDF 抓取、参考文献与图片预处理，再基于这些材料生成一份 reviewer-level 的自包含 Markdown 阅读报告。
+`Paper Reading` 是一个面向单篇 AI / 机器人论文的可执行 Codex skill。它会先运行内置脚本完成 arXiv 版本解析、网页与 PDF 抓取、参考文献与图片预处理，再识别论文类型，并生成一份 reviewer-level 的自包含 Markdown 阅读报告。
+
+模板固定的是阅读问题和证据责任，不固定论文必须有什么内容。理论论文可以没有实验表，系统论文可以没有公式，原文无关键图片时可以不插图，短论文可以只有一条中心 Claim。不同论文使用不同证据载体：
+
+- 理论论文：定义、假设、引理、定理、证明、反例与复杂度边界；
+- 方法论文：机制、主结果、消融、泛化与代码语义；
+- 系统 / 平台论文：接口、协议、系统测试、成本、失败案例与实现路径；
+- 数据集 / benchmark：数据组成、划分、评测协议、覆盖、泄漏与公平性；
+- 实证论文：对照、效应量、统计不确定性、稳健性与外推；
+- 综述 / meta-analysis / 观点论文：范围、纳入标准、材料覆盖、综合或论证链、反方观点与遗漏。
 
 这个目录里有两类文档：
 - `SKILL.md`：给模型执行时读取的规则与工作流。
 - `README.md`：给人看的发布说明，帮助你快速理解、安装和使用这个 skill。
 
 ## 适用场景
-- 单篇 arXiv 论文或 PDF 的系统性精读
-- 需要 reviewer-level 的理论、方法、实验和相关工作分析
+- 单篇 arXiv 论文的系统性精读
+- 需要 reviewer-level 的理论、方法、系统、数据、实证、综述或观点分析
 - 希望输出固定结构、可继续编辑的 Markdown 报告
-- 需要把关键图片、结果表、消融表和公式解释直接落到正文
+- 需要把决定性证据及其原文定位写入同一份报告
 
 ## 不适用场景
 - 纯摘要改写
@@ -51,8 +60,8 @@
 ## 核心特性
 - 自动解析最新 arXiv 版本，并准备 `raw/`、`images/`、`cache/` 等工作区
 - 输出唯一主报告：`{arxiv_id}_{title}/{arxiv_id}_阅读报告.md`
-- 要求关键图片、主结果表、消融表、相关论文表直接写入主报告
-- 强化公式阅读：关键公式需要就地解释，并统一数学公式格式
+- 按论文类型选择实验、证明、反例、协议、数据、系统测试或代码等证据载体，不设跨论文数量配额
+- 关键图片、表格、公式、定理或协议仅在有助于理解或判断时就地解释；原文没有时不补造
 - 支持补充 hjfy、papers.cool 和真实外部文献线索，但最终交付物仍是单一 Markdown 报告
 
 ## 目录结构
@@ -127,8 +136,10 @@ bash scripts/run_pipeline.sh "2510.12796"
 
 ## 关键约束
 - 必须先跑脚本，再在生成的主报告上继续补全，不要新建平行报告
-- 图片、表格和公式解释都应就地插入，不要集中堆到单独章节
-- 主结果表、关键消融表、相关论文表不能只留在缓存或附录
+- 先识别论文类型，再选择匹配的证据载体；不得把方法/实验论文格式硬套到理论、系统、数据或观点论文
+- 实际使用的图片、表格、公式、定理、证明链或协议应靠近其服务的解释；完整审计材料可进入同一报告的附录
+- 所有核心 Claim 都必须进入 Claim—Evidence—Verdict 表，并在附录 D 独立定位
+- 图片、公式、实验表、外部文献和 Claim 数量均不设统一配额；没有使用时应按模板说明不适用、原文未提供或检索边界
 - 数学公式统一使用 `$...$` 和独立的 `$$ ... $$` 公式块
 - 公式编号写在正文里，不在公式块内使用 `\tag{}`
 - 优先使用原始 PDF 和 arXiv 源码包中的 figure，不使用论文网页截图作为最终插图
@@ -137,7 +148,7 @@ bash scripts/run_pipeline.sh "2510.12796"
 1. 用 `$paper-reading` 指定目标论文。
 2. 让 skill 运行 `scripts/run_pipeline.sh` 完成预处理。
 3. 在 `{arxiv_id}_{title}/{arxiv_id}_阅读报告.md` 中补全分析正文。
-4. 交付前重新检查图片、表格、公式和外部文献是否都已落到主报告。
+4. 交付前运行验证器，检查全部核心 Claim、决定性证据、必要细节和实际使用的外部文献是否都已落到主报告并可追溯。
 
 ## 面向发布的说明
 - `SKILL.md` 保留给模型的执行指令，不建议把它当 README 直接复用。
